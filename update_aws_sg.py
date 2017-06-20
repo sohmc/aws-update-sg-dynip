@@ -54,8 +54,7 @@ def print_usage():
     
     The last two rights (AuthorizeSecurityGroupIngress, RevokeSecurityGroupIngress)
     can be restricted to the specific security group that holds your Dynamic IP.
-    Please see the github page for this project for additional
-    details.""")
+    Please see the github page for this project for additional details.""")
     
     sys.exit(2)
 
@@ -79,6 +78,15 @@ def config():
 
     dynip_config['force_update'] = query_yes_no("Should the script always force updates, regardless of what is currently set in the security group?", "no")
 
+    with open(config_file, 'w') as outfile:
+        json.dump(dynip_config, outfile, sort_keys=True, indent=2)
+
+    print "Config file save:"
+    print "   " + config_file
+    print "\n"
+    print "Ready to run"
+    sys.exit(0)
+
 
 ## {{{ http://code.activestate.com/recipes/577058/ (r2)
 def query_yes_no(question, default = "yes"):
@@ -100,7 +108,7 @@ def query_yes_no(question, default = "yes"):
         raise ValueError("invalid default answer: '%s'" % default)
 
     while 1:
-        sys.stdout.write(colorize(question, colors.PROMPT) + prompt)
+        sys.stdout.write(question + prompt)
         # Changed to be cross-python
         choice = raw_input().lower()
         if default and not choice:
@@ -108,32 +116,42 @@ def query_yes_no(question, default = "yes"):
         elif choice in valid:
             return valid[choice]
         else:
-            printFailure(
-                "Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
+            print "Please respond with 'yes' or 'no' (or 'y' or 'n').\n"
 ## end of http://code.activestate.com/recipes/577058/ }}}
 
 def main():
+    global config_file
+    global startup_config
 
     if (len(sys.argv) > 1):
 	try:
-	    opts, args = getopt.getopt(sys.argv[1:], "fc:s:n:p:")
-	except getopt.GetoptError:
-	    print_usage()
+	    opts, args = getopt.getopt(sys.argv[1:], "fhc:s:n:p:")
+	except getopt.GetoptError as err:
+            print str(err)
+	    print "For help, run with '-h'"
+            sys.exit(2)
 
-	for option, attribute in opts:
+	for option, argument in opts:
 	    if (option == '-c'):
 		run_config = True
-		if (not attribute):
-		    config_file = attribute
+		if (not argument):
+		    config_file = argument
 	    elif (option == '-f'):
 		startup_config['force_update'] = True
 	    elif (option == '-s'):
-		startup_config['sg'] = attribute
+		startup_config['sg'] = argument
+            elif (option == '-h'):
+                run_config = False
+                print_usage()
+        
+        if run_config:
+            config()
     else:
         print_usage()
 
 
-# read the configuration or force config if config file is empty
+    # read the configuration or force config if config file is empty
+    print config_file
     if (os.path.isfile(config_file) or (run_config == True)):
 	try:
 	    with open(config_file) as datafile:
