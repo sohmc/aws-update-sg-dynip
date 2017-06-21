@@ -116,7 +116,7 @@ def check_sg_ip(this_config):
         print textwrap.fill(err.output.strip())
         sys.exit(2)
     
-    print output
+    return output;
     
 
 
@@ -184,13 +184,31 @@ def main():
 	try:
 	    with open(config_file) as datafile:
 		dynip_config = json.load(datafile)
-
-            print dynip_config
 	except:
 	    if (run_config):
 		config()
         
-        check_sg_ip(dynip_config);
+        sg_ip = check_sg_ip(dynip_config)
+        dynip = get_current_dyip()
+
+        if ((dynip_config['force_update'] == 'yes') or (dynip not in sg_ip)):
+            if (dynip not in sg_ip):
+                print "Dynamic IP update detected!"
+            elif (dynip_config['force_update'] == 'yes'):
+                print "Forcing security group change."
+
+            print "Changing from " + sg_ip + " to " + dynip
+            print "do changes here"
+        elif (dynip in sg_ip):
+            print "Dynamic IP " + dynip + " matches security group entry " + sg_ip
+            print "Nothing to update"
+
+        
+
+def get_current_dyip():
+    r_params = {'format': 'json'}
+    r = requests.get('http://api.ipify.org', params=r_params)
+    return str(r.json()['ip'])
 
 if __name__ == "__main__":
     main()
