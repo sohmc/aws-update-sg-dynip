@@ -4,6 +4,7 @@ import os.path
 import sys
 import getopt
 import textwrap
+import subprocess
 
 # Path to AWS CLI
 awscli = '/usr/local/bin/aws'
@@ -14,6 +15,7 @@ dynip_config = dict()
 startup_config = dict()
 startup_config['force_update'] = False
 run_config = False
+find_ip_jmespath = "SecurityGroups[0].IpPermissions[0].IpRanges[0].CidrIp"
 
 def print_usage():
     print "usage: " + sys.argv[0] + " [-c <config file>] \ "
@@ -88,6 +90,24 @@ def config():
     sys.exit(0)
 
 
+def check_sg_ip(this_config):
+    global find_ip_jmespath
+    cmd_arg = []
+
+    # build the CLI arguments
+    if ('cli-profile' in this_config):
+        cmd_arg.append('--profile ' + this_config['cli-profile'])
+
+    cmd_arg.extend([ 'ec2', 'describe-security-groups' ])
+
+    cmd_arg.append('--group-id ' + this_config['sg'])
+    #cmd_arg.append('--query ' + find_ip_jmespath)
+
+    print cmd_arg
+    output = subprocess.check_output(['aws'] + cmd_arg)
+    print output
+
+
 ## {{{ http://code.activestate.com/recipes/577058/ (r2)
 def query_yes_no(question, default = "yes"):
     """Ask a yes/no question via raw_input() and return their answer.
@@ -143,23 +163,22 @@ def main():
             elif (option == '-h'):
                 run_config = False
                 print_usage()
-        
-        if run_config:
-            config()
     else:
         print_usage()
 
 
     # read the configuration or force config if config file is empty
-    print config_file
     if (os.path.isfile(config_file) or (run_config == True)):
 	try:
 	    with open(config_file) as datafile:
 		dynip_config = json.load(datafile)
+
+            print dynip_config
 	except:
 	    if (run_config):
 		config()
-
+        
+        check_sg_ip(dynip_config);
 
 if __name__ == "__main__":
     main()
