@@ -90,24 +90,21 @@ def config():
     sys.exit(0)
 
 
-def check_sg_ip(this_config):
-    global find_ip_jmespath
+def send_aws_cmd(this_config, subcmd, arguments):
     cmd_arg = []
-
     # build the CLI arguments
     if ('cli-profile' in this_config):
         cmd_arg.extend(['--profile', this_config['cli-profile']])
 
-    cmd_arg.extend([ 'ec2', 'describe-security-groups' ])
+    cmd_arg.append('ec2')
+    cmd_arg.append(subcmd)
+    cmd_arg.extend(arguments)
 
-    cmd_arg.extend(['--group-id', this_config['sg']])
-    cmd_arg.extend(['--query', find_ip_jmespath])
-
-    # parse the output of the json output, stripping newlines and
-    # returning the raw value only (i.e. remove quotes)
     try:
+        # parse the output of the json output, stripping newlines and
+        # returning the raw value only (i.e. remove quotes)
         output = subprocess.check_output(['aws'] + cmd_arg,
-                                         stderr=subprocess.STDOUT).rstrip()[1:-1]
+                     stderr=subprocess.STDOUT).rstrip()[1:-1]
     except subprocess.CalledProcessError as err:
         print "aws cli exit code: ", err.returncode
         print "Running command:"
@@ -115,9 +112,31 @@ def check_sg_ip(this_config):
         print "Output: "
         print textwrap.fill(err.output.strip())
         sys.exit(2)
+
+    return output
+
+
+
+def check_sg_ip(this_config):
+    global find_ip_jmespath
+    cmd_arg = []
+
+    cmd_arg.extend(['--group-id', this_config['sg']])
+    cmd_arg.extend(['--query', find_ip_jmespath])
+
+    return send_aws_cmd(this_config, 'describe-security-groups', cmd_arg)
+
+
+def get_current_dyip():
+    r_params = {'format': 'json'}
+    r = requests.get('http://api.ipify.org', params=r_params)
+    return str(r.json()['ip'])
+
+
+def update_sg(this_config):
+    print "foo"
     
-    return output;
-    
+
 
 
 ## {{{ http://code.activestate.com/recipes/577058/ (r2)
@@ -198,17 +217,12 @@ def main():
                 print "Forcing security group change."
 
             print "Changing from " + sg_ip + " to " + dynip
-            print "do changes here"
+            update_sg(dynip_config)
         elif (dynip in sg_ip):
             print "Dynamic IP " + dynip + " matches security group entry " + sg_ip
             print "Nothing to update"
 
         
-
-def get_current_dyip():
-    r_params = {'format': 'json'}
-    r = requests.get('http://api.ipify.org', params=r_params)
-    return str(r.json()['ip'])
 
 if __name__ == "__main__":
     main()
