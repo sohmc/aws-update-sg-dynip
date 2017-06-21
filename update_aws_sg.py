@@ -104,7 +104,7 @@ def send_aws_cmd(this_config, subcmd, arguments):
         # parse the output of the json output, stripping newlines and
         # returning the raw value only (i.e. remove quotes)
         output = subprocess.check_output(['aws'] + cmd_arg,
-                     stderr=subprocess.STDOUT).rstrip()[1:-1]
+                     stderr=subprocess.STDOUT).strip()
     except subprocess.CalledProcessError as err:
         print "aws cli exit code: ", err.returncode
         print "Running command:"
@@ -112,7 +112,7 @@ def send_aws_cmd(this_config, subcmd, arguments):
         print "Output: "
         print textwrap.fill(err.output.strip())
         sys.exit(2)
-
+    
     return output
 
 
@@ -133,9 +133,31 @@ def get_current_dyip():
     return str(r.json()['ip'])
 
 
-def update_sg(this_config):
-    print "foo"
-    
+def update_sg(this_config, old_ip, new_ip):
+    #  aws --profile galactica-sg ec2 revoke-security-group-ingress
+    #  --group-id sg-f9519788 --protocol all --cidr 108.45.27.121/32
+    revoke_args = []
+
+    # First, revoke the ingress
+    revoke_args.extend(['--group-id', this_config['sg']])
+    revoke_args.extend(['--protocol', 'all'])
+
+    # Copy what we have so we don't have to do it again
+    authorize_args = list(revoke_args)
+
+    # Finish the revoke command
+    # The old IP should have the CIDR notation at the end,
+    # so no need to add it here.
+    revoke_args.extend(['--cidr', old_ip])
+    # Finish the authorize command
+    authorize_args.extend(['--cidr', new_ip + '/32'])
+
+    # If old_ip is set, then we need to revoke it first
+    if (old_ip != 'null'):
+        send_aws_cmd(this_config, 'revoke-security-group-ingress', revoke_args)
+
+    # Send the new security group
+    send_aws_cmd(this_config, 'authorize-security-group-ingress', authorize_args)
 
 
 
@@ -210,6 +232,11 @@ def main():
         sg_ip = check_sg_ip(dynip_config)
         dynip = get_current_dyip()
 
+        # If there is no security group, aws will return a null.  In
+        # that case, do not strip the quotes.
+        if (sg_ip != 'null'):
+            sg_ip = sg_ip[1:-1]
+
         if ((dynip_config['force_update'] == 'yes') or (dynip not in sg_ip)):
             if (dynip not in sg_ip):
                 print "Dynamic IP update detected!"
@@ -217,7 +244,7 @@ def main():
                 print "Forcing security group change."
 
             print "Changing from " + sg_ip + " to " + dynip
-            update_sg(dynip_config)
+            update_sg(dynip_config, sg_ip, dynip)
         elif (dynip in sg_ip):
             print "Dynamic IP " + dynip + " matches security group entry " + sg_ip
             print "Nothing to update"
