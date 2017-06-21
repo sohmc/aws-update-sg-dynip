@@ -6,10 +6,25 @@ The goal for this script is to update an AWS Security Group with your dynamicall
 
 Directions on how to set this up is in the [Wiki](../../wiki).
 
+# Requirements
+* Python (script was tested on Python 2.7.12)
+* Python Libraries:
+    * json
+    * requests
+    * os.path
+    * sys
+    * getopt
+    * textwrap
+    * subprocess
+
+
 # Support
 
-I follow a strict "It works for me, it should work for you" support model.  I'll do the best I can to respond to issues logged here.
+Please note that this script, if not used correctly or if I made a typo, can lock you out of your EC2 instance.  Your method of recovery is to use the AWS Console and update your security groups manually.  I do not work for AWS, Amazon, or any of their affiliates.
+
+If you wish to purchase AWS support, please contact me directly.
 
 # Licensing
 
 This repository is licensed using the [GNU Public License (GNU) v. 3](https://choosealicense.com/licenses/gpl-3.0/).  If you require a different license, please feel free to contact me.
+
