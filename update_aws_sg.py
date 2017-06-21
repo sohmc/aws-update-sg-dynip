@@ -96,16 +96,28 @@ def check_sg_ip(this_config):
 
     # build the CLI arguments
     if ('cli-profile' in this_config):
-        cmd_arg.append('--profile ' + this_config['cli-profile'])
+        cmd_arg.extend(['--profile', this_config['cli-profile']])
 
     cmd_arg.extend([ 'ec2', 'describe-security-groups' ])
 
-    cmd_arg.append('--group-id ' + this_config['sg'])
-    #cmd_arg.append('--query ' + find_ip_jmespath)
+    cmd_arg.extend(['--group-id', this_config['sg']])
+    cmd_arg.extend(['--query', find_ip_jmespath])
 
-    print cmd_arg
-    output = subprocess.check_output(['aws'] + cmd_arg)
+    # parse the output of the json output, stripping newlines and
+    # returning the raw value only (i.e. remove quotes)
+    try:
+        output = subprocess.check_output(['aws'] + cmd_arg,
+                                         stderr=subprocess.STDOUT).rstrip()[1:-1]
+    except subprocess.CalledProcessError as err:
+        print "aws cli exit code: ", err.returncode
+        print "Running command:"
+        print err.cmd
+        print "Output: "
+        print textwrap.fill(err.output.strip())
+        sys.exit(2)
+    
     print output
+    
 
 
 ## {{{ http://code.activestate.com/recipes/577058/ (r2)
