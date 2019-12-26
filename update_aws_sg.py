@@ -237,10 +237,10 @@ def main():
         if (sg_ip != 'null'):
             sg_ip = sg_ip[1:-1]
 
-        if ((dynip_config['force_update'] == 'yes') or (dynip not in sg_ip)):
+        if ((dynip_config['force_update'] == True) or (dynip not in sg_ip)):
             if (dynip not in sg_ip):
                 print "Dynamic IP update detected!"
-            elif (dynip_config['force_update'] == 'yes'):
+            elif (dynip_config['force_update'] == True):
                 print "Forcing security group change."
 
             print "Changing from " + sg_ip + " to " + dynip
