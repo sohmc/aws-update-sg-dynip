@@ -1,5 +1,8 @@
 # Update your AWS Security Group with your Dynamic IP address
 
+[![Build
+Status](https://travis-ci.com/sohmc/aws-update-sg-dynip.svg?branch=master)](https://travis-ci.com/sohmc/aws-update-sg-dynip)
+
 This script is a sister to [CloudFlare DDNS 
 Updater](https://github.com/sohmc/cloudflare-ddns-py/)
 but can be run independently.
@@ -17,6 +20,10 @@ Directions on how to set this up is in the
 * Python (script was developed on Python 3.6.9)
 * Python Libraries:
     * requests
+
+If you wish to not install Python, you may download the binary that is
+posted in the
+["Releases"](https://github.com/sohmc/aws-update-sg-dynip/releases).
 
 # Support
 
