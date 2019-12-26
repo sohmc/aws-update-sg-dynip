@@ -109,11 +109,11 @@ def send_aws_cmd(this_config, subcmd, arguments):
         output = subprocess.check_output(['aws'] + cmd_arg,
                      stderr=subprocess.STDOUT).strip()
     except subprocess.CalledProcessError as err:
-        logging.debug("aws cli exit code: ", err.returncode)
-        logging.debug("Running command:")
-        logging.debug(err.cmd)
-        logging.debug("Output: ")
-        print(textwrap.fill(err.output.strip()))
+        logging.warning("aws cli exit code: ", err.returncode)
+        logging.warning("Running command:")
+        logging.warning(err.cmd)
+        logging.warning("Output: ")
+        logging.warning(textwrap.fill(err.output.strip()))
         sys.exit(2)
     
     return output
@@ -203,14 +203,14 @@ def main():
         try:
             opts, args = getopt.getopt(sys.argv[1:], "fhc:s:n:p:")
         except getopt.GetoptError as err:
-            print(str(err))
-            print("For help, run with '-h'")
+            logging.warning(str(err))
+            logging.warning("For help, run with '-h'")
             sys.exit(2)
 
         for option, argument in opts:
             if (option == '-c'):
                 run_config = True
-                if (not argument):
+                if (argument):
                     config_file = argument
             elif (option == '-f'):
                 startup_config['force_update'] = "yes"
@@ -228,6 +228,14 @@ def main():
             with open(config_file) as datafile:
                 dynip_config = json.load(datafile)
                 logging.debug("Read config.")
+
+                if 'force_update' in startup_config:
+                    logging.info("-f declared in the command.  Forcing update.")
+                    dynip_config['force_update'] = startup_config['force_update']
+                if 'sg' in startup_config:
+                    logging.info("-s declared in the command.  Using declared security group.")
+                    dynip_config['sg'] = startup_config['sg']
+
         except:
             logging.debug("Config file not found or unreadable.  Running config.")
             if (run_config):
@@ -242,17 +250,20 @@ def main():
             sg_ip = sg_ip[1:-1]
 
         logging.debug("sg_ip: " + str(sg_ip) + " vs dynip: " + dynip)
-        if ((dynip_config['force_update'] == "yes") or (dynip not in sg_ip)):
-            if (dynip not in sg_ip):
-                print("Dynamic IP update detected!")
-            elif (dynip_config['force_update'] == "yes"):
-                print("Forcing security group change.")
+        if (dynip in sg_ip):
+            logging.info("Dynamic IP " + dynip + " matches security group entry " + sg_ip)
 
-            print("Changing from " + sg_ip + " to " + dynip)
-            update_sg(dynip_config, sg_ip, dynip)
+            logging.debug("Checking forced status: " + dynip_config['force_update'])
+
+            if (dynip_config['force_update'] == "yes"):
+                logging.info("Forcing security group change.")
+                update_sg(dynip_config, sg_ip, dynip)
+            else:
+                logging.info("Nothing to update")
         elif (dynip in sg_ip):
-            print("Dynamic IP " + dynip + " matches security group entry " + sg_ip)
-            print("Nothing to update")
+            logging.info("Dynamic IP update detected!")
+            logging.info("Changing from " + sg_ip + " to " + dynip)
+            update_sg(dynip_config, sg_ip, dynip)
         
 
 if __name__ == "__main__":
