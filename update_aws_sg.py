@@ -5,12 +5,15 @@ import sys
 import getopt
 import textwrap
 import subprocess
+import logging
 
 # Path to AWS CLI
 awscli = '/usr/local/bin/aws'
 config_file = os.path.expanduser('~/.config/.aws_sg_ddns.conf')
 
 # Configuration
+logging.basicConfig(format='%(asctime)s %(process)d %(levelname)s %(message)s',
+    level=logging.DEBUG)
 dynip_config = dict()
 startup_config = dict()
 startup_config['force_update'] = "no"
@@ -106,10 +109,10 @@ def send_aws_cmd(this_config, subcmd, arguments):
         output = subprocess.check_output(['aws'] + cmd_arg,
                      stderr=subprocess.STDOUT).strip()
     except subprocess.CalledProcessError as err:
-        print("aws cli exit code: ", err.returncode)
-        print("Running command:")
-        print(err.cmd)
-        print("Output: ")
+        logging.debug("aws cli exit code: ", err.returncode)
+        logging.debug("Running command:")
+        logging.debug(err.cmd)
+        logging.debug("Output: ")
         print(textwrap.fill(err.output.strip()))
         sys.exit(2)
     
@@ -216,16 +219,17 @@ def main():
             elif (option == '-h'):
                 run_config = False
                 print_usage()
-    else:
-        print_usage()
 
 
     # read the configuration or force config if config file is empty
+    logging.debug("Trying config file: " + config_file)
     if (os.path.isfile(config_file) or (run_config == True)):
         try:
             with open(config_file) as datafile:
                 dynip_config = json.load(datafile)
+                logging.debug("Read config.")
         except:
+            logging.debug("Config file not found or unreadable.  Running config.")
             if (run_config):
                 config()
         
@@ -237,7 +241,7 @@ def main():
         if (sg_ip != 'null'):
             sg_ip = sg_ip[1:-1]
 
-        print("sg_ip: " + str(sg_ip) + " vs dynip: " + dynip)
+        logging.debug("sg_ip: " + str(sg_ip) + " vs dynip: " + dynip)
         if ((dynip_config['force_update'] == "yes") or (dynip not in sg_ip)):
             if (dynip not in sg_ip):
                 print("Dynamic IP update detected!")
