@@ -13,38 +13,38 @@ config_file = os.path.expanduser('~/.config/.aws_sg_ddns.conf')
 # Configuration
 dynip_config = dict()
 startup_config = dict()
-startup_config['force_update'] = False
+startup_config['force_update'] = "no"
 run_config = False
 find_ip_jmespath = "SecurityGroups[0].IpPermissions[0].IpRanges[0].CidrIp"
 
 def print_usage():
-    print "usage: " + sys.argv[0] + " [-c <config file>] \ "
-    print "             -s <security group> [-f] \ "
-    print "		[-n <ip address>] \ "
-    print "             [-p <profile name>] "
-    print textwrap.dedent("""
-    -c <config_file>     	Run using the config file, if provided.  If the 
-    			config file is empty or does not exist, the 
-    			config will run and save values in the specified 
-    			file.  The script will run without arguments when 
-    			the config file is found at: """)
-    print "\t\t\t\t" + config_file
+    print("usage: " + sys.argv[0] + " [-c <config file>] \ ")
+    print("             -s <security group> [-f] \ ")
+    print("             [-n <ip address>] \ ")
+    print("             [-p <profile name>] ")
+    print(textwrap.dedent("""
+    -c <config_file>        Run using the config file, if provided.  If the 
+                            config file is empty or does not exist, the 
+                            config will run and save values in the specified 
+                            file.  The script will run without arguments when 
+                            the config file is found at: """))
+    print("\t\t\t\t" + config_file)
 
-    print textwrap.dedent("""
+    print(textwrap.dedent("""
     -s <security group>     Security Group to update.  Required argument if
                             config file is not provided.  If config file and
                             this argument are provided, this argument will 
                             SUPERCEDE the config file.
     
-    -f              	Force IP address update, even if the record is 
-    			the same as the current IP address.
+    -f                      Force IP address update, even if the record is 
+                            the same as the current IP address.
     
-    -n <ip address>	Use the specified IP address instead of the IP 
-    			address that this script is running on.  CIDR 
-    			notation /32 is added automatically.
+    -n <ip address>         Use the specified IP address instead of the IP 
+                            address that this script is running on.  CIDR 
+                            notation /32 is added automatically.
     
-    -p <profile name>	Run the AWS CLI as the named profile, similiar to
-    			running aws --profile <profile name>
+    -p <profile name>        Run the AWS CLI as the named profile, similiar to
+                             running aws --profile <profile name>
     
     
     AWS CLI must already be configured with the appropriate credentials.  At
@@ -56,13 +56,13 @@ def print_usage():
     
     The last two rights (AuthorizeSecurityGroupIngress, RevokeSecurityGroupIngress)
     can be restricted to the specific security group that holds your Dynamic IP.
-    Please see the github page for this project for additional details.""")
+    Please see the github page for this project for additional details."""))
     
     sys.exit(2)
 
 
 def config():
-    print textwrap.dedent("""\
+    print(textwrap.dedent("""\
     The information provided in this configuration will be used to update
     the security group you specify within the region set on your AWS CLI
     profile.  Setting up your AWS CLI is outside the scope of this script
@@ -72,21 +72,21 @@ def config():
     Please keep in mind that absolutely no validation is done during the
     configuration.
 
-    What security group should be updated: """)
-    dynip_config['sg'] = raw_input("> ")
+    What security group should be updated: """))
+    dynip_config['sg'] = input("> ")
 
-    print "Which AWS CLI profile should be used?  Blank is default: "
-    dynip_config['cli-profile'] = raw_input("> ")
+    print("Which AWS CLI profile should be used?  Blank is default: ")
+    dynip_config['cli-profile'] = input("> ")
 
     dynip_config['force_update'] = query_yes_no("Should the script always force updates, regardless of what is currently set in the security group?", "no")
 
     with open(config_file, 'w') as outfile:
         json.dump(dynip_config, outfile, sort_keys=True, indent=2)
 
-    print "Config file save:"
-    print "   " + config_file
-    print "\n"
-    print "Ready to run"
+    print("Config file save:")
+    print("   " + config_file)
+    print("\n")
+    print("Ready to run")
     sys.exit(0)
 
 
@@ -106,11 +106,11 @@ def send_aws_cmd(this_config, subcmd, arguments):
         output = subprocess.check_output(['aws'] + cmd_arg,
                      stderr=subprocess.STDOUT).strip()
     except subprocess.CalledProcessError as err:
-        print "aws cli exit code: ", err.returncode
-        print "Running command:"
-        print err.cmd
-        print "Output: "
-        print textwrap.fill(err.output.strip())
+        print("aws cli exit code: ", err.returncode)
+        print("Running command:")
+        print(err.cmd)
+        print("Output: ")
+        print(textwrap.fill(err.output.strip()))
         sys.exit(2)
     
     return output
@@ -183,13 +183,13 @@ def query_yes_no(question, default = "yes"):
     while 1:
         sys.stdout.write(question + prompt)
         # Changed to be cross-python
-        choice = raw_input().lower()
+        choice = input().lower()
         if default and not choice:
             return default
         elif choice in valid:
             return valid[choice]
         else:
-            print "Please respond with 'yes' or 'no' (or 'y' or 'n').\n"
+            print("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 ## end of http://code.activestate.com/recipes/577058/ }}}
 
 def main():
@@ -197,22 +197,22 @@ def main():
     global startup_config
 
     if (len(sys.argv) > 1):
-	try:
-	    opts, args = getopt.getopt(sys.argv[1:], "fhc:s:n:p:")
-	except getopt.GetoptError as err:
-            print str(err)
-	    print "For help, run with '-h'"
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "fhc:s:n:p:")
+        except getopt.GetoptError as err:
+            print(str(err))
+            print("For help, run with '-h'")
             sys.exit(2)
 
-	for option, argument in opts:
-	    if (option == '-c'):
-		run_config = True
-		if (not argument):
-		    config_file = argument
-	    elif (option == '-f'):
-		startup_config['force_update'] = True
-	    elif (option == '-s'):
-		startup_config['sg'] = argument
+        for option, argument in opts:
+            if (option == '-c'):
+                run_config = True
+                if (not argument):
+                    config_file = argument
+            elif (option == '-f'):
+                startup_config['force_update'] = "yes"
+            elif (option == '-s'):
+                startup_config['sg'] = argument
             elif (option == '-h'):
                 run_config = False
                 print_usage()
@@ -222,14 +222,14 @@ def main():
 
     # read the configuration or force config if config file is empty
     if (os.path.isfile(config_file) or (run_config == True)):
-	try:
-	    with open(config_file) as datafile:
-		dynip_config = json.load(datafile)
-	except:
-	    if (run_config):
-		config()
+        try:
+            with open(config_file) as datafile:
+                dynip_config = json.load(datafile)
+        except:
+            if (run_config):
+                config()
         
-        sg_ip = check_sg_ip(dynip_config)
+        sg_ip = check_sg_ip(dynip_config).decode('utf-8')
         dynip = get_current_dyip()
 
         # If there is no security group, aws will return a null.  In
@@ -237,18 +237,18 @@ def main():
         if (sg_ip != 'null'):
             sg_ip = sg_ip[1:-1]
 
-        if ((dynip_config['force_update'] == True) or (dynip not in sg_ip)):
+        print("sg_ip: " + str(sg_ip) + " vs dynip: " + dynip)
+        if ((dynip_config['force_update'] == "yes") or (dynip not in sg_ip)):
             if (dynip not in sg_ip):
-                print "Dynamic IP update detected!"
-            elif (dynip_config['force_update'] == True):
-                print "Forcing security group change."
+                print("Dynamic IP update detected!")
+            elif (dynip_config['force_update'] == "yes"):
+                print("Forcing security group change.")
 
-            print "Changing from " + sg_ip + " to " + dynip
+            print("Changing from " + sg_ip + " to " + dynip)
             update_sg(dynip_config, sg_ip, dynip)
         elif (dynip in sg_ip):
-            print "Dynamic IP " + dynip + " matches security group entry " + sg_ip
-            print "Nothing to update"
-
+            print("Dynamic IP " + dynip + " matches security group entry " + sg_ip)
+            print("Nothing to update")
         
 
 if __name__ == "__main__":
