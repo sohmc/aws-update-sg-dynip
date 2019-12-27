@@ -1,0 +1,33 @@
+language: python
+python:
+  - "3.6"
+
+jobs:
+  include:
+    - stage: "Tests"
+      name: "Global API KEY test"
+      env: 
+        - SG=$SG
+      before_script:
+        - bash .travis/create_template.bash
+      script:
+        - python update_aws_sg.py -f -c .travis/aws_sg_ddns.conf
+#    - stage: "Build binaries"
+#      name: "Build using Pyinstaller (Linux)"
+#      os: linux
+#      script:
+#        - pip install pyinstaller
+#        - pyinstaller --onefile ./cloudflare-ddns.py
+#        - cp ./dist/cloudflare-ddns ./dist/cloudflare-ddns-linux-amd64.bin
+#        - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+#        - git tag $TRAVIS_TAG
+#        - ls -lR
+#      deploy:
+#        provider: releases
+#        api_key: $GITHUB_API_TOKEN
+#        file: ./dist/cloudflare-ddns-linux-amd64.bin
+#        skip_cleanup: true
+#        draft: true
+#        on:
+#          branch: master
+#          tags: true
