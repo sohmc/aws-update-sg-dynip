@@ -5,7 +5,7 @@ python:
 jobs:
   include:
     - stage: "Tests"
-      name: "Global API KEY test"
+      name: "IP Address Change with Force"
       env: 
         - SG=$SG
       before_script:

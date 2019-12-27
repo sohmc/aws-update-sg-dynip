@@ -103,6 +103,8 @@ def send_aws_cmd(this_config, subcmd, arguments):
     cmd_arg.append(subcmd)
     cmd_arg.extend(arguments)
 
+    logging.debug("send_aws_cmd:: " + " ".join(cmd_arg))
+
     try:
         # parse the output of the json output, stripping newlines and
         # returning the raw value only (i.e. remove quotes)
@@ -157,9 +159,11 @@ def update_sg(this_config, old_ip, new_ip):
 
     # If old_ip is set, then we need to revoke it first
     if (old_ip != 'null'):
+        logging.info("Revoking the IP address with the following arguments: " + " ".join(revoke_args))
         send_aws_cmd(this_config, 'revoke-security-group-ingress', revoke_args)
 
     # Send the new security group
+    logging.info("Setting the IP address with the following arguments: " + " ".join(authorize_args))
     send_aws_cmd(this_config, 'authorize-security-group-ingress', authorize_args)
 
 
