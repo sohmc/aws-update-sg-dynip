@@ -260,7 +260,7 @@ def main():
                 update_sg(dynip_config, sg_ip, dynip)
             else:
                 logging.info("Nothing to update")
-        elif (dynip in sg_ip):
+        else:
             logging.info("Dynamic IP update detected!")
             logging.info("Changing from " + sg_ip + " to " + dynip)
             update_sg(dynip_config, sg_ip, dynip)
