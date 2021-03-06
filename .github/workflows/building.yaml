@@ -24,6 +24,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
+        arch: [amd64]
 
     steps:
       - name: Check out the repo
@@ -38,6 +39,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi      
+
+      - name: Install AWS CLI
+        run: bash ci/install_aws_cli.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
 
       - name: Test Python Script
         run: bash ci/test_python3.bash
