@@ -11,7 +11,5 @@ fi
 echo "Building template..."
 bash ci/create_template.bash
 
-echo "aws secret sauce: ${AWS_SECRET_SAUCE}"
-
 echo "Running script..."
 ${PYTHON} update_aws_sg.py -f -c ci/aws_sg_ddns.conf
