@@ -1,7 +1,7 @@
 #!/bin/bash -u
 TEMP_FILE=./aws_sg_ddns.conf
 
-cd .travis/
+cd ci/
 
 if [[ -f ${TEMP_FILE} ]]; then
     rm ${TEMP_FILE}
