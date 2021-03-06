@@ -12,4 +12,4 @@ echo "Building template..."
 bash ci/create_template.bash
 
 echo "Running script..."
-${PYTHON} cloudflare-ddns.py -f -c ci/aws_sg_ddns.conf
+${PYTHON} update_aws_sg.py -f -c ci/aws_sg_ddns.conf
