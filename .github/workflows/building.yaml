@@ -1,0 +1,181 @@
+name: AWS DDNS SG CICD
+
+on: 
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - move-to-github-actions
+      - master
+      - main
+    paths-ignore:
+      - 'README.md'
+  schedule:
+    # 4am every Saturday
+    - cron: '0 4 * * 6'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  raw-testing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+        arch: [amd64]
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install AWS CLI
+        run: bash ci/install_aws_cli.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
+
+      - name: Test Python Script
+        run: bash ci/test_python3.bash
+        env:
+          SG: "sg-00a96d0148dfdec8c"
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  
+  build-binaries:
+    if: (github.event_name == 'pull_request') || startsWith(github.ref, 'refs/tags/')
+    needs: raw-testing
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [amd64]
+        python-version: [3.9]
+        include:
+          - os: ubuntu-latest
+            sg: "sg-00a96d0148dfdec8c"
+          - os: windows-latest
+            sg: "sg-0bbf763e90104295e"
+          - os: macos-latest
+            sg: "sg-085fb65403a8a27f7"
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi      
+
+      - name: Install AWS CLI
+        run: bash ci/install_aws_cli.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
+
+      - name: Building ${{ matrix.os }} Binary
+        id: build_binary
+        run: bash ci/build_binary.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
+      
+      - name: Test ${{ matrix.os }} Binary
+        run: bash ci/test_binary.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          SG: ${{ matrix.sg }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          BIN_NAME: ${{ steps.build_binary.outputs.BIN_NAME }}
+
+      #   Until Github Actions supports ARM runners,
+      #   the tag will be created by Travis, which will then
+      #   trigger all other jobs here.
+      - name: Create Tag
+        if: github.ref == 'refs/heads/main'
+        uses: anothrNick/github-tag-action@1.26.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          RELEASE_BRANCHES: main,master
+
+      - name: Upload ${{ matrix.os }} Binary to S3
+        if: startsWith(github.ref, 'refs/tags/')
+        run: bash ci/upload_binary.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
+          BIN_NAME: ${{ steps.build_binary.outputs.BIN_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEPLOY_BUCKET: ${{ secrets.AWS_DEPLOY_BUCKET }}
+
+  create-release-draft:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Install AWS CLI
+        run: bash ci/install_aws_cli.bash
+        env:
+          TRAVIS_OS_NAME: linux
+          TRAVIS_CPU_ARCH: amd64
+
+      - name: Download from AWS S3 Bucket
+        run: |
+          mkdir binaries
+          aws s3 cp s3://${AWS_DEPLOY_BUCKET}/cloudflare_ddns/${GITHUB_RUN_NUMBER}/ ./binaries/ --recursive --quiet
+          ls -lR ./binaries
+        env: 
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEPLOY_BUCKET: ${{ secrets.AWS_DEPLOY_BUCKET }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          body: Release for PR ${{ github.event.number }} on Actions run ${{ github.run_id }} via commit ${{ github.sha }}
+          draft: true
+          files: |
+            ./binaries/*
+
+      - name: Delete s3 Objects
+        run: aws s3 rm s3://${AWS_DEPLOY_BUCKET}/cloudflare_ddns/ --recursive
+        env: 
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEPLOY_BUCKET: ${{ secrets.AWS_DEPLOY_BUCKET }}
