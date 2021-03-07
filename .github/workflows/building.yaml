@@ -59,11 +59,18 @@ jobs:
     needs: raw-testing
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 1
+      # max-parallel: 1
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         arch: [amd64]
         python-version: [3.9]
+        include:
+          - os: ubuntu-latest
+            sg: ${{ secrets.SG1 }}
+          - os: windows-latest
+            sg: ${{ secrets.SG2 }}
+          - os: macos-latest
+            sg: ${{ secrets.SG3 }}
 
     steps:
       - name: Check out the repo
@@ -98,7 +105,7 @@ jobs:
         run: bash ci/test_binary.bash
         env:
           OS_NAME: ${{ matrix.os }}
-          SG: ${{ secrets.SG }}
+          SG: ${{ matrix.sg }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
