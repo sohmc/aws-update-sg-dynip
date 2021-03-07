@@ -1,7 +1,7 @@
 #!/bin/bash
 BIN_NAME=./dist/${BIN_NAME}
 
-echo "Testing ${BIN_NAME}""
+echo "Testing ${BIN_NAME}"
 
 set -ev
 
