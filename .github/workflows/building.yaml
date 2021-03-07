@@ -66,11 +66,11 @@ jobs:
         python-version: [3.9]
         include:
           - os: ubuntu-latest
-            sg: ${{ secrets.SG1 }}
+            sg: "sg-00a96d0148dfdec8c"
           - os: windows-latest
-            sg: ${{ secrets.SG2 }}
+            sg: "sg-0bbf763e90104295e"
           - os: macos-latest
-            sg: ${{ secrets.SG3 }}
+            sg: "sg-085fb65403a8a27f7"
 
     steps:
       - name: Check out the repo
