@@ -53,7 +53,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-          AWS_SECRET_SAUCE: foo-bar-baz
   
   build-binaries:
     if: (github.event_name == 'pull_request') || startsWith(github.ref, 'refs/tags/')
@@ -81,6 +80,12 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi      
 
+      - name: Install AWS CLI
+        run: bash ci/install_aws_cli.bash
+        env:
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
+
       - name: Building ${{ matrix.os }} Binary
         id: build_binary
         run: bash ci/build_binary.bash
@@ -91,13 +96,10 @@ jobs:
       - name: Test ${{ matrix.os }} Binary
         run: bash ci/test_binary.bash
         env:
-          OS_NAME: ${{ matrix.os }}
-          CPU_ARCH: ${{ matrix.arch }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          GLOBAL_API_KEY: ${{ secrets.GLOBAL_API_KEY }}
-          CF_EMAIL: ${{ secrets.CF_EMAIL }}
-          SUBDOMAIN: travis
-          ZONE: ${{ secrets.ZONE }}
+          SG: ${{ secrets.SG }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
       #   Until Github Actions supports ARM runners,
       #   the tag will be created by Travis, which will then
@@ -110,19 +112,12 @@ jobs:
           WITH_V: true
           RELEASE_BRANCHES: main,master
 
-      - name: Install AWS CLI
-        if: startsWith(github.ref, 'refs/tags/')
-        run: bash ci/install_aws_cli.bash
-        env:
-          TRAVIS_OS_NAME: ${{ matrix.os }}
-          TRAVIS_CPU_ARCH: ${{ matrix.arch }}
-
       - name: Upload ${{ matrix.os }} Binary to S3
         if: startsWith(github.ref, 'refs/tags/')
         run: bash ci/upload_binary.bash
         env:
-          TRAVIS_OS_NAME: ${{ matrix.os }}
-          TRAVIS_CPU_ARCH: ${{ matrix.arch }}
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
           BIN_NAME: ${{ steps.build_binary.outputs.BIN_NAME }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}

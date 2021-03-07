@@ -13,7 +13,7 @@ pip install pyinstaller
 echo chowning pip wheels directory
 chown -Rv $USER:$GROUP ~/.cache/pip/wheels
 
-pyinstaller --log-level=DEBUG --onefile ./cloudflare-ddns.py
+pyinstaller --log-level=DEBUG --onefile ./update_aws_sg.py
 
 if [[ $OS_NAME == "windows-latest" ]]; then
     DIST_FILE=update_aws_sg.exe
