@@ -59,11 +59,11 @@ jobs:
     needs: raw-testing
     runs-on: ${{ matrix.os }}
     strategy:
+      max-parallel: 1
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         arch: [amd64]
         python-version: [3.9]
-        max-parallel: 1
 
     steps:
       - name: Check out the repo
