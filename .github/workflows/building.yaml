@@ -97,6 +97,7 @@ jobs:
       - name: Test ${{ matrix.os }} Binary
         run: bash ci/test_binary.bash
         env:
+          OS_NAME: ${{ matrix.os }}
           SG: ${{ secrets.SG }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
