@@ -113,7 +113,7 @@ jobs:
       #   the tag will be created by Travis, which will then
       #   trigger all other jobs here.
       - name: Create Tag
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu.latest'
         uses: anothrNick/github-tag-action@1.26.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
