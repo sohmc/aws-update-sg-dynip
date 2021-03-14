@@ -8,6 +8,8 @@ on:
       - main
     paths-ignore:
       - 'README.md'
+    tags:
+      - v*
   schedule:
     # 4am every Saturday
     - cron: '0 4 * * 6'
@@ -53,7 +55,7 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
   
   build-binaries:
-    if: (github.event_name == 'pull_request') || startsWith(github.ref, 'refs/tags/') || (github.ref == 'refs/heads/main')
+    if: (github.event_name == 'pull_request') || (github.ref == 'refs/heads/main')
     needs: raw-testing
     runs-on: ${{ matrix.os }}
     strategy:
@@ -71,6 +73,12 @@ jobs:
             sg: "sg-085fb65403a8a27f7"
 
     steps:
+      - name: Echo variables
+        run: bash ci/environment-variables.bash
+        env: 
+          OS_NAME: ${{ matrix.os }}
+          CPU_ARCH: ${{ matrix.arch }}
+          
       - name: Check out the repo
         uses: actions/checkout@v2
         with:
@@ -108,17 +116,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           BIN_NAME: ${{ steps.build_binary.outputs.BIN_NAME }}
-
-      #   Until Github Actions supports ARM runners,
-      #   the tag will be created by Travis, which will then
-      #   trigger all other jobs here.
-      - name: Create Tag
-        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu.latest'
-        uses: anothrNick/github-tag-action@1.26.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          RELEASE_BRANCHES: main,master
 
       - name: Upload ${{ matrix.os }} Binary to S3
         if: startsWith(github.ref, 'refs/tags/')
